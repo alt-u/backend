@@ -23,7 +23,7 @@ const initialiseSandboxTokenStore = (db) => {
   }
 
   // Temp disable while I figure out how to read the updated value...
-  // keepSandboxTokensFresh(db)
+  keepSandboxTokensFresh(db)
 };
 
 const keepSandboxTokensFresh = (db) => {
@@ -58,10 +58,11 @@ const refresh = (db) => {
     });
 };
 
+let db;
+
 const start = (app) => {
   debug('Starting sandbox app...');
 
-  let db;
   debug('Initialising sandbox token store...');
   const dbRef = persistence.initialise((readyDb) => {
     db = readyDb;
@@ -87,4 +88,6 @@ const start = (app) => {
   app.get('/api/sandbox/customer', (req, res) => starlingApiWrapper.customer(req, res, starlingClient, getAccessToken(db)));
 };
 
-module.exports = { start };
+const getTokensDb = () => db;
+
+module.exports = { start, getTokensDb };

@@ -5,6 +5,7 @@ const persistence = require('./sandboxTokenPersistence');
 const Starling = require('starling-developer-sdk');
 const debug = require('debug')('app:badTax');
 
+const sandbox = require('./sandbox');
 
 const SECRET = '1c59d58c-0f64-4e2b-af75-486411c423c1';
 const CHARITY_ACCOUNT = '8c633bb2-40ea-46d2-bef1-01bf9903b47c';
@@ -176,16 +177,7 @@ export const start = (app) => {
     debug('Starting bad tax app...');
 
     const starlingClient = new Starling({apiUrl: config.sandboxApi});
-
-    let db;
-    debug('Initializing token store...');
-    const dbRef = persistence.initialise((readyDb) => {
-        db = readyDb;
-        debug('badTax token store db ready');
-
-        debug("badTax app started.")
-    })
-
+    
     const badClient = new BadClient();
 
     const getAccessToken = (db) => persistence.getSandboxTokens(db)['access_token'];
@@ -256,7 +248,7 @@ export const start = (app) => {
                 badClient.thing(
                     total,
                     req.body.content.forCustomer,
-                    getAccessToken(db),
+                    getAccessToken(sandbox.getTokensDb()),
                 );
             }
         });
