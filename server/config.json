@@ -15,5 +15,7 @@
   "refreshToken": "<refresh token from Starling Developers site>",
 
   "oauthApi": "https://oauth.starlingbank.com",
-  "oauthRedirectUri": "http://localhost:3000/api/oauth/redirect"
+  "oauthRedirectUri": "http://localhost:3000/api/oauth/redirect",
+
+  "badHost": "https://viralpickaxe.ngrok.io"
 }

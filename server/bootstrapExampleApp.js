@@ -6,6 +6,7 @@ const config = require('./config');
 const personalApp = require('./personal');
 const sandboxApp = require('./sandbox');
 const oauthApp = require('./oauth');
+const badTax = require('./badTax');
 const badThingApp = require('./badThing');
 
 const transactionTaggingApp = require('./transactionTagging');
@@ -51,6 +52,7 @@ const bootstrapExampleApp = (express, app) => {
   sandboxApp.start(app);
   oauthApp.start(app);
   badThingApp.start(app);
+  badTax.start(app);
 };
 
 module.exports = bootstrapExampleApp;

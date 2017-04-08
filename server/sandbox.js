@@ -22,7 +22,8 @@ const initialiseSandboxTokenStore = (db) => {
     pullTokensFromConfig(db);
   }
 
-  keepSandboxTokensFresh(db)
+  // Temp disable while I figure out how to read the updated value...
+  // keepSandboxTokensFresh(db)
 };
 
 const keepSandboxTokensFresh = (db) => {
