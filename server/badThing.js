@@ -24,7 +24,7 @@ const start = (app) => {
 			return
 
 		}
-
+		
 		request("https://api-sandbox.starlingbank.com/api/v1/accounts/balance",{
 			method: "GET",
 			headers: {
@@ -40,28 +40,53 @@ const start = (app) => {
 
 			} else {
 
-				request("https://api-sandbox.starlingbank.com/api/v1/payments/local",{
+				request("https://api-sandbox.starlingbank.com/api/v1/contacts",{
 					method: "POST",
 					json: {
-						destinationAccountUid: "dbea64d9-8900-41b8-aaee-6e10b5358b67",
-						payment: {
-							amount: value,
-							currency: "GBP"
-						},
-						reference: "Donation"
+						name: "Charity",
+						accountNumber: "36813694",
+						sortCode: "608371"
 					},
 					headers: {
-						"Authorization": `Bearer ${auth}`
-					}
+							"Authorization": `Bearer ${auth}`
+						}
 				},(err, response) => {
-					console.log(response.body)
+
 					if ( response.statusCode === 202 ) {
 
-						res.status(202).send({success: true})
+						let charity = response.headers.location.split('/')
+						let charityId = charity[charity.length-1]
+
+						request("https://api-sandbox.starlingbank.com/api/v1/payments/local",{
+							method: "POST",
+							json: {
+								destinationAccountUid: charityId,
+								payment: {
+									amount: value,
+									currency: "GBP"
+								},
+								reference: "Donation"
+							},
+							headers: {
+								"Authorization": `Bearer ${auth}`
+							}
+						},(err, response) => {
+							
+							if ( response.statusCode === 202 ) {
+
+								res.status(202).send({success: true})
+
+							} else {
+
+								res.status(500).send({message: "yeah something went wrong (starling not us)...", actual: response.body})
+
+							}
+
+						})
 
 					} else {
 
-						res.status(500).send({message: "yeah something went wrong (starling not us)..."})
+						res.status(500).send({message: "Can't find charity account"})
 
 					}
 
