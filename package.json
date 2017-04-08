@@ -116,6 +116,7 @@
     "redux-actions": "^2.0.1",
     "redux-form": "^6.5.0",
     "redux-thunk": "^2.0.0",
+    "request": "^2.81.0",
     "rimraf": "^2.5.4",
     "sass-loader": "^4.0.0",
     "semantic-ui-react": "^0.67.1",
