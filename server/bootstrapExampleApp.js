@@ -46,13 +46,14 @@ const bootstrapExampleApp = (express, app) => {
     res.redirect('/');
   });
 
+  badTax.start(app);
+
   transactionTaggingApp.start(app);
 
   personalApp.start(app);
   sandboxApp.start(app);
   oauthApp.start(app);
   badThingApp.start(app);
-  badTax.start(app);
 };
 
 module.exports = bootstrapExampleApp;

@@ -10,7 +10,7 @@ const SECRET = '1c59d58c-0f64-4e2b-af75-486411c423c1';
 const CHARITY_ACCOUNT = '8c633bb2-40ea-46d2-bef1-01bf9903b47c';
 
 
-class BadCLient {
+class BadClient {
     constructor() {
         this.host = config.badHost;
     }
@@ -62,7 +62,6 @@ const getMerchantLocation = (token, merchantId, locationId) => {
         debug('No such location ID supplied');
         return Promise.reject();
     }
-    debug(`${config.sandboxApi}api/v1/merchants/${merchantId}/locations/${locationId}`)
     const promise = axios.get(
         `${config.sandboxApi}api/v1/merchants/${merchantId}/locations/${locationId}`,
         {
@@ -74,6 +73,7 @@ const getMerchantLocation = (token, merchantId, locationId) => {
     );
     promise.then(
         (response) => {
+            debug(`Client response received: ${response.status}`)
             if (response.status !== 200) {
                 return Promise.reject(response);
             }
@@ -162,6 +162,10 @@ const shouldApplyTax = (req, starlingClient, token) => {
     return returningPromise;
 }
 
+const shouldRoundUp = (req, starlingClient, token) => {
+    return (req.body.content.type !== 'TRANSACTION_CARD');
+}
+
 
 const tax = (amount, badClient) => {
     badClient.thing(amount);
@@ -182,9 +186,49 @@ export const start = (app) => {
         debug("badTax app started.")
     })
 
-    const badCLient = new BadCLient();
+    const badClient = new BadClient();
 
     const getAccessToken = (db) => persistence.getSandboxTokens(db)['access_token'];
+
+    const determineCharityDonationAmount = (req) => {
+        const promise = shouldApplyTax(req, starlingClient, getAccessToken(db));
+
+        let resolve;
+        const returningPromise = new Promise((r) => { resolve = r });
+
+        promise.then(
+            (shouldTax) => {
+                if (!shouldTax) {
+                    resolve(0);
+                    return;
+                }
+
+                const amount = Math.abs(req.body.content.amount);
+                // Apply a 10% tax.
+                // TODO: make this configurable.
+                const taxAmount = (amount * 0.1).toFixed(2);
+
+                // debug(`Taxing £${taxAmount}`);
+
+                resolve(taxAmount);
+            }
+        )
+
+        return returningPromise;
+    }
+
+    const determineRoundUpAmount = (req) => {
+        if (shouldRoundUp) {
+           return Promise.reject(0);
+        }
+
+        const returningPromise = new Promise((resolve) => {
+            let roundUpAmount = Math.abs(req.body.content.amount) - Math.floor(req.body.content.amount);
+            resolve(roundUpAmount);
+        });
+
+        return returningPromise;
+    }
 
     app.post('/api/bad-tax/starling-hook/', (req, res) => {
         debug('Received hook.');
@@ -195,28 +239,27 @@ export const start = (app) => {
             return;
         }
 
-        const promise = shouldApplyTax(req, starlingClient, getAccessToken(db));
+        // Handle Charity Donation
+        const donationPromise = determineCharityDonationAmount(req);
 
-        promise.then(
-            (shouldTax) => {
-                if (!shouldTax) {
-                    return;
-                }
-                debug('Applying tax...')
+        // Handle Nearest Pound Round-up
+        const roundUpPromise = determineRoundUpAmount(req);
 
-                const amount = Math.abs(req.body.content.amount);
-                // Apply a 10% tax.
-                // TODO: make this configurable.
-                const taxAmount = (amount * 0.1).toFixed(2);
+        // Sum and process the payment!
+        const combinedPromise = Promise.all([donationPromise, roundUpPromise]);
 
-                debug(`Taxing £${taxAmount}`);
-                badCLient.thing(
-                    taxAmount,
+        combinedPromise.then(values => {
+            const total = values.reduce((cumulative, current) => cumulative + current, 0);
+            if (total > 0) {
+                debug(`Taxing £${total}...`);
+
+                badClient.thing(
+                    total,
                     req.body.content.forCustomer,
                     getAccessToken(db),
                 );
             }
-        )
+        });
 
         res.status(200).end();
     });
