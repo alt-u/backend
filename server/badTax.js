@@ -207,7 +207,8 @@ export const start = (app) => {
                 const amount = Math.abs(req.body.content.amount);
                 // Apply a 10% tax.
                 // TODO: make this configurable.
-                const taxAmount = amount * 0.1;
+                const taxAmount = (amount * 0.1).toFixed(2);
+
                 debug(`Taxing £${taxAmount}`);
                 badCLient.thing(
                     taxAmount,
