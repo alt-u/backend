@@ -1,3 +1,4 @@
+const crypto = require('crypto')
 const config = require('./config');
 const axios = require('axios');
 
@@ -7,7 +8,6 @@ const debug = require('debug')('app:badTax');
 
 const sandbox = require('./sandbox');
 
-const SECRET = '1c59d58c-0f64-4e2b-af75-486411c423c1';
 const CHARITY_ACCOUNT = '8c633bb2-40ea-46d2-bef1-01bf9903b47c';
 
 
@@ -90,7 +90,22 @@ const getMerchantLocation = (token, merchantId, locationId) => {
 
 
 const validateWebhook = (req, secret) => {
-    // TODO: implement this. lulz.
+    return true;
+    // The below doesn't appear to work for some reason, there's a large
+    // mismatch in length of the header and the generated sig, so it makes
+    // me think the docs are either wrong, or very unclear. From the sig
+    // supplied it looks to be base64 encoded...
+    const hash = crypto.createHash('sha512', secret);
+    hash.update(JSON.stringify(req.body));
+    const value = hash.digest('hex');
+    debug(JSON.stringify(req.body));
+
+    const sig = req.get('X-Hook-Signature');
+
+    if (sig !== value) {
+        debug(`Hook sig mismatch, expecting ${value} got ${sig}`)
+        return false;
+    }
     return true;
 }
 
@@ -225,7 +240,7 @@ export const start = (app) => {
     app.post('/api/bad-tax/starling-hook/', (req, res) => {
         debug('Received hook.');
 
-        if (!validateWebhook(req)) {
+        if (!validateWebhook(req, config.hookSecret)) {
             debug('Invalid webhook credentials');
             res.status(400).end();
             return;
