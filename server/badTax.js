@@ -24,7 +24,7 @@ class BadClient {
     thing(amount, description, token) {
         const url = `${this.host}/api/badthing/`;
 
-        debug(`Access token: ${token}`)
+        debug(`Sending tax request.`)
 
         const promise = axios.post(url,
             {
@@ -157,6 +157,7 @@ const shouldApplyTax = (req, starlingClient, token) => {
 
             locationPromise.then(
                 (response) => {
+                    debug('Received location promise.')
                     const code = response.data.mastercardMerchantCategoryCode;
                     const BAR_MERCHANT_CODE = 5813;
                     const badCodes = [BAR_MERCHANT_CODE, ];
@@ -178,8 +179,8 @@ const shouldApplyTax = (req, starlingClient, token) => {
     return returningPromise;
 }
 
-const shouldRoundUp = (req, starlingClient, token) => {
-    return (req.body.content.type !== 'TRANSACTION_CARD');
+const shouldRoundUp = (req) => {
+    return (req.body.content.type === 'TRANSACTION_CARD');
 }
 
 
@@ -218,6 +219,9 @@ export const start = (app) => {
                 // debug(`Taxing £${taxAmount}`);
 
                 resolve(taxAmount);
+            },
+            (r) => {
+                debug('Charity donation didnt resolve');
             }
         )
 
@@ -225,11 +229,11 @@ export const start = (app) => {
     }
 
     const determineRoundUpAmount = (req) => {
-        if (shouldRoundUp) {
-           return Promise.reject(0);
-        }
-
         const returningPromise = new Promise((resolve) => {
+            if (!shouldRoundUp(req)) {
+                resolve(0);
+                return
+            }
             let roundUpAmount = Math.abs(req.body.content.amount) - Math.floor(req.body.content.amount);
             resolve(roundUpAmount);
         });
@@ -255,18 +259,23 @@ export const start = (app) => {
         // Sum and process the payment!
         const combinedPromise = Promise.all([donationPromise, roundUpPromise]);
 
-        combinedPromise.then(values => {
-            const total = values.reduce((cumulative, current) => cumulative + current, 0);
-            if (total > 0) {
-                debug(`Taxing £${total}...`);
+        combinedPromise.then(
+            values => {
+                const total = values.reduce((cumulative, current) => cumulative + current, 0);
+                if (total > 0) {
+                    debug(`Taxing £${total}...`);
 
-                badClient.thing(
-                    total,
-                    req.body.content.forCustomer,
-                    getAccessToken(sandbox.getTokensDb()),
-                );
+                    badClient.thing(
+                        total,
+                        req.body.content.forCustomer,
+                        getAccessToken(sandbox.getTokensDb()),
+                    );
+                }
+            },
+            r => {
+                debug('Failed to resolve combined');
             }
-        });
+        );
 
         res.status(200).end();
     });
