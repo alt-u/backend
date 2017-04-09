@@ -39,20 +39,6 @@ if (project.env === 'development') {
 
   bootstrapExampleApp(express, app);
 
-  // This rewrites all routes requests to the root /index.html file
-  // (ignoring file requests). If you want to implement universal
-  // rendering, you'll want to remove this middleware.
-  app.use('*', function (req, res, next) {
-    const filename = path.join(compiler.outputPath, 'index.html')
-    compiler.outputFileSystem.readFile(filename, (err, result) => {
-      if (err) {
-        return next(err)
-      }
-      res.set('content-type', 'text/html')
-      res.send(result)
-      res.end()
-    })
-  })
 } else {
   debug(
     'Server is being run outside of live development mode, meaning it will ' +
@@ -67,5 +53,16 @@ if (project.env === 'development') {
   // server in production.
   app.use(express.static(project.paths.dist()))
 }
+
+//CORS middleware
+var allowCrossDomain = function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  next();
+}
+
+app.use(allowCrossDomain);
 
 module.exports = app

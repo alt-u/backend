@@ -2,14 +2,21 @@ const config = require('./config');
 const Starling = require('starling-developer-sdk');
 const starlingApiWrapper = require('./starling-api-wrapper');
 const request = require("request")
+const debug = require('debug')('app:badThing');
 
 const start = (app) => {
   
   app.post('/api/badthing', (req, res) => {
 
-		var value = req.body.value || "",
-			desc = req.body.description || "",
-			auth = req.headers.authorization || ""
+		var value = req.body.value || req.body['value'] || "",
+			desc = req.body.description || req.body['description'] || "",
+			auth = req.headers.Authorization || req.headers['Authorization'] || req.headers.authorization || ""
+
+		console.log(`Auth Header: ${auth}`);
+		// console.log(`Body: ${req.body}`);
+		debug(req.body);
+		console.log(`Value: ${value}`);
+		console.log(`Description: ${desc}`);
 		
 		if ( auth.length === 0 ) {
 			
@@ -36,7 +43,7 @@ const start = (app) => {
 
 			if ( body.availableToSpend < value ) {
 
-				res.status(402).send({message: "Insuficcient Funds"})
+				res.status(402).send({ message: "Insufficient Funds" })
 
 			} else {
 
@@ -48,8 +55,8 @@ const start = (app) => {
 						sortCode: "608371"
 					},
 					headers: {
-							"Authorization": `Bearer ${auth}`
-						}
+						"Authorization": `Bearer ${auth}`
+					}
 				},(err, response) => {
 
 					if ( response.statusCode === 202 ) {
