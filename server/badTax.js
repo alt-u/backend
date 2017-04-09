@@ -198,7 +198,7 @@ export const start = (app) => {
     const getAccessToken = (db) => persistence.getSandboxTokens(db)['access_token'];
 
     const determineCharityDonationAmount = (req) => {
-        const promise = shouldApplyTax(req, starlingClient, getAccessToken(db));
+        const promise = shouldApplyTax(req, starlingClient, getAccessToken(sandbox.getTokensDb()));
 
         let resolve;
         const returningPromise = new Promise((r) => { resolve = r });
